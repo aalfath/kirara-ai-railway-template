@@ -31,7 +31,12 @@ RUN apt-get -yqq update \
  && rm -r /var/lib/apt/lists/*
 COPY --from=builder /build/src/data/fonts/sarasa-mono-sc-regular.ttf /usr/share/fonts/
 COPY --from=builder /build/dist/*.whl /tmp/wheel/
-RUN pip install --no-cache-dir /tmp/wheel/*.whl && rm -r /tmp/wheel
+COPY constraints.txt /tmp/wheel/
+# Upstream leaves its Python dependencies unpinned and current mcp/pygls 2.x break it:
+# install with the exact versions tested for this template.
+RUN pip install --no-cache-dir -c /tmp/wheel/constraints.txt /tmp/wheel/*.whl \
+ && python -c "import kirara_ai.entry" \
+ && rm -r /tmp/wheel
 WORKDIR /app
 COPY --from=builder /build/webui/package/dist/ /app/web/
 COPY --from=builder /build/src/data/ /tmp/data/
