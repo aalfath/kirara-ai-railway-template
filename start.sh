@@ -51,8 +51,13 @@ python /app/railway/configure.py
 
 term=0
 on_term() {
+  [ "$term" = 1 ] && return
   term=1
-  if [ -n "${child:-}" ]; then kill -TERM -- "-$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null || true; fi
+  [ -n "${child:-}" ] || return
+  kill -TERM "$child" 2>/dev/null || true
+  # Kirara AI v3.2.1 often doesn't finish a graceful stop; its own handler forces
+  # an exit on the third signal. Data is already on disk (SQLite + memory files).
+  ( sleep "${STOP_GRACE_SECONDS:-8}"; kill -TERM "$child" 2>/dev/null; sleep 1; kill -TERM "$child" 2>/dev/null ) &
 }
 trap on_term TERM INT
 
